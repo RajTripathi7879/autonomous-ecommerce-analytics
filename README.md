@@ -88,6 +88,9 @@ The Power BI dashboard combines these views into an interactive report designed 
 ```text
 ecommerce-analytics/
 │
+├── .gitignore
+├── README.md
+│
 ├── dashboard/
 │   └── Superstore_Sales_Dashboard.pbix
 │
@@ -98,6 +101,11 @@ ecommerce-analytics/
 │   └── processed/
 │       └── superstore_clean.csv
 │
+├── database/
+│   ├── load_database.py
+│   ├── run_analysis.py
+│   └── superstore.db
+│
 ├── notebooks/
 │   └── 01_data_profiling.ipynb
 │
@@ -105,7 +113,5 @@ ecommerce-analytics/
 │   ├── Business_Insights.md
 │   └── dashboard_preview.png
 │
-├── sql/
-│   └── 01_business_analysis.sql
-│
-└── README.md
+└── sql/
+    └── 01_business_analysis.sql
