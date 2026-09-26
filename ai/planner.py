@@ -21,10 +21,16 @@ def load_planner_inputs():
     project_root = Path(__file__).resolve().parent.parent
 
     metrics_file = project_root / "outputs" / "metrics.json"
+    anomalies_file = project_root / "outputs" / "anomalies.json"
 
     if not metrics_file.exists():
         raise FileNotFoundError(
             f"Metrics file not found: {metrics_file}"
+        )
+
+    if not anomalies_file.exists():
+        raise FileNotFoundError(
+            f"Anomalies file not found: {anomalies_file}"
         )
 
     instructions = load_analytics_instructions()
@@ -32,8 +38,10 @@ def load_planner_inputs():
     with open(metrics_file, "r", encoding="utf-8") as file:
         metrics = json.load(file)
 
-    return instructions, metrics
+    with open(anomalies_file, "r", encoding="utf-8") as file:
+        anomalies = json.load(file)
 
+    return instructions, metrics, anomalies
 
 def create_analysis_plan():
     project_root = Path(__file__).resolve().parent.parent
@@ -42,7 +50,7 @@ def create_analysis_plan():
 
     output_dir.mkdir(exist_ok=True)
 
-    instructions, metrics = load_planner_inputs()
+    instructions, metrics, anomalies = load_planner_inputs()
 
     client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -50,7 +58,8 @@ def create_analysis_plan():
 You are the planning agent for an autonomous e-commerce analytics system.
 
 Your job is to decide which predefined analytical tasks should be
-executed based on the supplied analytics instructions and calculated metrics.
+executed based on the supplied analytics instructions, calculated metrics,
+and detected anomaly signals.
 
 IMPORTANT RULES:
 - Python and SQL calculated metrics are the source of truth.
@@ -61,6 +70,17 @@ IMPORTANT RULES:
 - Do not create new task names.
 - Select only tasks that are relevant to the supplied data and instructions.
 - The selected tasks will be executed later by Python analytics components.
+- Use detected anomaly signals to prioritize relevant analytical tasks.
+- An anomaly signal is evidence that an area may require deeper investigation.
+- Do not treat an anomaly signal as proof of causation.
+- Do not invent additional anomalies.
+- Preserve the distinction between detected signals and business conclusions.
+- If an anomaly signal is relevant to a predefined task, select that task.
+- Use the exact metric names and concepts present in the supplied evidence.
+- Do not convert total profit into profit margin, revenue into sales growth,
+  or any other metric into a different metric.
+- When describing an anomaly, use the evidence source's actual measure.
+- Do not introduce a metric that is not present in the supplied evidence.
 
 VALID ANALYSIS TASKS:
 
@@ -113,6 +133,9 @@ ANALYTICS INSTRUCTIONS:
 
 CALCULATED METRICS:
 {json.dumps(metrics, indent=2)}
+
+DETECTED ANOMALY SIGNALS:
+{json.dumps(anomalies, indent=2)}
 """
 
     response = client.models.generate_content(

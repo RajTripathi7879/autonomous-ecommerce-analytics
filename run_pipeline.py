@@ -5,6 +5,7 @@ from database.run_analysis import run_analysis
 from validation.validate_data import validate_data
 from validation.validate_ai_output import validate_ai_output
 from analytics.build_metrics import build_metrics
+from analytics.anomaly_detector import detect_anomalies
 from state.detect_changes import check_for_changes
 from analytics.instruction_loader import load_analytics_instructions
 from ai.planner import create_analysis_plan
@@ -21,6 +22,7 @@ def outputs_are_complete():
     required_outputs = [
         PROJECT_ROOT / "outputs" / "business_analysis.json",
         PROJECT_ROOT / "outputs" / "metrics.json",
+        PROJECT_ROOT / "outputs" / "anomalies.json",
         PROJECT_ROOT / "outputs" / "analysis_plan.json",
         PROJECT_ROOT / "outputs" / "analysis_results.json",
         PROJECT_ROOT / "outputs" / "final_report.json",
@@ -85,7 +87,11 @@ if not validation_passed:
 print("\nStep 6: Building structured business metrics...")
 build_metrics()
 
-print("\nStep 7: Running AI analysis planner...")
+print("\nStep 7: Detecting business anomalies...")
+anomalies = detect_anomalies()
+print(f"✓ Detected {anomalies['anomaly_count']} anomaly signals.")
+
+print("\nStep 8: Running AI analysis planner...")
 analysis_plan = create_analysis_plan()
 
 print(
@@ -93,7 +99,7 @@ print(
     f"{len(analysis_plan['analysis_tasks'])} analysis tasks."
 )
 
-print("\nStep 8: Executing AI analysis plan...")
+print("\nStep 9: Executing AI analysis plan...")
 analysis_results = execute_analysis_plan()
 
 print(
@@ -101,7 +107,7 @@ print(
     f"({len(analysis_results['results'])} sections)."
 )
 
-print("\nStep 9: Generating AI business report...")
+print("\nStep 10: Generating AI business report...")
 final_report = generate_final_report()
 
 print(
@@ -110,14 +116,14 @@ print(
     f"{len(final_report['recommendations'])} recommendations."
 )
 
-print("\nStep 10: Validating AI output...")
+print("\nStep 11: Validating AI output...")
 ai_validation_passed = validate_ai_output()
 
 if not ai_validation_passed:
     print("\n❌ Pipeline stopped because AI output validation failed.")
     raise SystemExit(1)
 
-print("\nStep 11: Generating human-readable report...")
+print("\nStep 12: Generating human-readable report...")
 report_file = generate_markdown_report()
 
 print(
@@ -125,7 +131,7 @@ print(
     f"{report_file}"
 )    
 
-print("\nStep 12: Generating analytical charts...")
+print("\nStep 13: Generating analytical charts...")
 generate_charts()
 
 print("✓ Analytical charts generated successfully.")
