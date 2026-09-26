@@ -1,6 +1,17 @@
 import json
 from pathlib import Path
 
+def load_recommendations():
+    project_root = Path(__file__).resolve().parent.parent
+    recommendations_file = project_root / "outputs" / "recommendations.json"
+
+    if not recommendations_file.exists():
+        raise FileNotFoundError(
+            f"Recommendations file not found: {recommendations_file}"
+        )
+
+    with open(recommendations_file, "r", encoding="utf-8") as file:
+        return json.load(file)
 
 def load_final_report():
     project_root = Path(__file__).resolve().parent.parent
@@ -24,6 +35,7 @@ def generate_markdown_report():
     output_dir.mkdir(exist_ok=True)
 
     report = load_final_report()
+    recommendation_data = load_recommendations()
 
     lines = []
 
@@ -63,6 +75,28 @@ def generate_markdown_report():
         lines.append(
             f"**Evidence Source:** "
             f"`{recommendation['evidence_source']}`"
+        )
+        lines.append("")
+
+    lines.append("## Action Priorities")
+    lines.append("")
+
+    for recommendation in recommendation_data["recommendations"]:
+        lines.append(
+            f"### {recommendation['area']} "
+            f"({recommendation['priority']} Priority)"
+        )
+        lines.append("")
+        lines.append(
+            f"**Action:** {recommendation['action']}"
+        )
+        lines.append("")
+        lines.append(
+            f"**Trigger:** {recommendation['trigger']}"
+        )
+        lines.append("")
+        lines.append(
+            f"**Evidence:** {recommendation['evidence']}"
         )
         lines.append("")
 
