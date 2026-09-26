@@ -89,8 +89,8 @@ print("\nStep 7: Running AI analysis planner...")
 analysis_plan = create_analysis_plan()
 
 print(
-    f"✓ AI planner created "
-    f"{len(analysis_plan['analysis_priority'])} priority areas."
+    f"✓ AI planner selected "
+    f"{len(analysis_plan['analysis_tasks'])} analysis tasks."
 )
 
 print("\nStep 8: Executing AI analysis plan...")

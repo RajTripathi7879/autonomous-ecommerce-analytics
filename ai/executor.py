@@ -2,6 +2,22 @@ import json
 from pathlib import Path
 
 
+TASK_TO_METRIC = {
+    "overall_business_performance": "overall_business_performance",
+    "sales_profit_by_year": "sales_profit_by_year",
+    "regional_performance": [
+        "sales_by_region",
+        "profit_margin_by_region",
+    ],
+    "category_profitability": [
+        "profit_by_category",
+        "profit_by_subcategory",
+    ],
+    "discount_profitability": "discount_profit_analysis",
+    "loss_making_products": "loss_making_products",
+}
+
+
 def load_execution_inputs():
     project_root = Path(__file__).resolve().parent.parent
 
@@ -36,42 +52,62 @@ def execute_analysis_plan():
 
     plan, metrics = load_execution_inputs()
 
-    analysis_results = {
-        "analysis_priority": plan["analysis_priority"],
-        "business_questions": plan["business_questions"],
-        "results": {
-            "overall_business_performance": metrics[
-                "overall_business_performance"
-            ],
-            "sales_profit_by_year": metrics[
-                "sales_profit_by_year"
-            ],
-            "sales_by_region": metrics[
-                "sales_by_region"
-            ],
-            "profit_by_category": metrics[
-                "profit_by_category"
-            ],
-            "profit_margin_by_region": metrics[
-                "profit_margin_by_region"
-            ],
-            "discount_profit_analysis": metrics[
-                "discount_profit_analysis"
-            ],
-            "loss_making_products": metrics[
-                "loss_making_products"
-            ],
-            "profit_by_subcategory": metrics[
-                "profit_by_subcategory"
-            ]
-        },
-        "validation_checks": plan["insight_checks"]
+    selected_tasks = plan.get("analysis_tasks", [])
+
+    if not selected_tasks:
+        raise ValueError(
+            "AI planner returned no analysis tasks."
+        )
+
+    analysis_results = {}
+
+    for task in selected_tasks:
+
+        if task not in TASK_TO_METRIC:
+            raise ValueError(
+                f"Unknown analysis task returned by AI planner: {task}"
+            )
+
+        metric_sources = TASK_TO_METRIC[task]
+
+        if isinstance(metric_sources, str):
+            metric_sources = [metric_sources]
+
+        for metric_name in metric_sources:
+
+            if metric_name not in metrics:
+                raise KeyError(
+                    f"Required metric '{metric_name}' "
+                    f"for task '{task}' was not found."
+                )
+
+            analysis_results[metric_name] = metrics[metric_name]
+
+    execution_output = {
+        "selected_tasks": selected_tasks,
+        "analysis_priority": plan.get(
+            "analysis_priority",
+            []
+        ),
+        "business_questions": plan.get(
+            "business_questions",
+            []
+        ),
+        "results": analysis_results,
+        "validation_checks": plan.get(
+            "insight_checks",
+            []
+        ),
     }
 
     with open(output_file, "w", encoding="utf-8") as file:
-        json.dump(analysis_results, file, indent=4)
+        json.dump(
+            execution_output,
+            file,
+            indent=4
+        )
 
-    return analysis_results
+    return execution_output
 
 
 if __name__ == "__main__":
@@ -82,6 +118,11 @@ if __name__ == "__main__":
     results = execute_analysis_plan()
 
     print("\nAnalysis plan executed successfully.")
+
+    print("\nSelected tasks:")
+
+    for task in results["selected_tasks"]:
+        print(f"  - {task}")
 
     print("\nEvidence sections collected:")
 

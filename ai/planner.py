@@ -7,6 +7,16 @@ from ai.config import GEMINI_API_KEY, GEMINI_MODEL
 from analytics.instruction_loader import load_analytics_instructions
 
 
+VALID_ANALYSIS_TASKS = [
+    "overall_business_performance",
+    "sales_profit_by_year",
+    "regional_performance",
+    "category_profitability",
+    "discount_profitability",
+    "loss_making_products",
+]
+
+
 def load_planner_inputs():
     project_root = Path(__file__).resolve().parent.parent
 
@@ -39,23 +49,51 @@ def create_analysis_plan():
     prompt = f"""
 You are the planning agent for an autonomous e-commerce analytics system.
 
-Your job is to create an analytical plan using ONLY the supplied
-analytics instructions and calculated metrics.
+Your job is to decide which predefined analytical tasks should be
+executed based on the supplied analytics instructions and calculated metrics.
 
 IMPORTANT RULES:
 - Python and SQL calculated metrics are the source of truth.
 - Do not invent numerical values.
 - Do not modify or recalculate metrics.
 - Do not claim causation when the data only shows association.
-- Focus on meaningful business analysis.
-- Identify the most important areas that should be discussed.
-- The plan will be executed later by Python analytics components.
+- Only select tasks from the VALID ANALYSIS TASKS list.
+- Do not create new task names.
+- Select only tasks that are relevant to the supplied data and instructions.
+- The selected tasks will be executed later by Python analytics components.
+
+VALID ANALYSIS TASKS:
+
+{json.dumps(VALID_ANALYSIS_TASKS, indent=2)}
+
+TASK DEFINITIONS:
+
+- overall_business_performance:
+  Evaluate total sales, total profit, and profit margin.
+
+- sales_profit_by_year:
+  Analyze yearly sales and profit trends.
+
+- regional_performance:
+  Analyze regional sales and regional profit margins.
+
+- category_profitability:
+  Analyze category and sub-category profitability.
+
+- discount_profitability:
+  Analyze the observed association between discount levels and profitability.
+
+- loss_making_products:
+  Identify and rank products with negative total profit.
 
 Return ONLY valid JSON.
 
 Required JSON structure:
 
 {{
+    "analysis_tasks": [
+        "valid_task_name"
+    ],
     "analysis_priority": [
         "..."
     ],
@@ -87,6 +125,22 @@ CALCULATED METRICS:
 
     plan = json.loads(response.text)
 
+    if "analysis_tasks" not in plan:
+        raise ValueError(
+            "AI planner did not return analysis_tasks."
+        )
+
+    invalid_tasks = [
+        task
+        for task in plan["analysis_tasks"]
+        if task not in VALID_ANALYSIS_TASKS
+    ]
+
+    if invalid_tasks:
+        raise ValueError(
+            f"AI planner returned invalid analysis tasks: {invalid_tasks}"
+        )
+
     with open(output_file, "w", encoding="utf-8") as file:
         json.dump(plan, file, indent=4)
 
@@ -101,6 +155,12 @@ if __name__ == "__main__":
     plan = create_analysis_plan()
 
     print("\nAnalysis plan created successfully.")
+
+    print("\nSelected analysis tasks:")
+
+    for task in plan["analysis_tasks"]:
+        print(f"  - {task}")
+
     print("\nPriority areas:")
 
     for item in plan["analysis_priority"]:
