@@ -11,6 +11,10 @@ from analytics.instruction_loader import load_analytics_instructions
 from ai.planner import create_analysis_plan
 from ai.executor import execute_analysis_plan
 from ai.analyst import generate_final_report
+from ai.recommendation_agent import (
+    create_ai_recommendations,
+    save_ai_recommendations,
+)
 from recommendations.recommendation_engine import (
     build_recommendation_inputs,
     generate_rule_based_recommendations,
@@ -29,6 +33,7 @@ def outputs_are_complete():
         PROJECT_ROOT / "outputs" / "metrics.json",
         PROJECT_ROOT / "outputs" / "anomalies.json",
         PROJECT_ROOT / "outputs" / "recommendations.json",
+        PROJECT_ROOT / "outputs" / "ai_recommendations.json",
         PROJECT_ROOT / "outputs" / "analysis_plan.json",
         PROJECT_ROOT / "outputs" / "analysis_results.json",
         PROJECT_ROOT / "outputs" / "final_report.json",
@@ -121,12 +126,24 @@ recommendations = generate_rule_based_recommendations(
 )
 recommendation_output = save_recommendations(recommendations)
 
+print("\nStep 11: Refining recommendations with AI...")
+
+ai_recommendation_response = create_ai_recommendations()
+ai_recommendation_file = save_ai_recommendations(
+    ai_recommendation_response
+)
+
+print(
+    f"✓ AI recommendations saved to: "
+    f"{ai_recommendation_file.name}"
+)
+
 print(
     f"✓ Generated "
     f"{recommendation_output['recommendation_count']} recommendations."
 )
 
-print("\nStep 11: Generating AI business report...")
+print("\nStep 12: Generating AI business report...")
 final_report = generate_final_report()
 
 print(
@@ -135,14 +152,14 @@ print(
     f"{len(final_report['recommendations'])} recommendations."
 )
 
-print("\nStep 12: Validating AI output...")
+print("\nStep 13: Validating AI output...")
 ai_validation_passed = validate_ai_output()
 
 if not ai_validation_passed:
     print("\n❌ Pipeline stopped because AI output validation failed.")
     raise SystemExit(1)
 
-print("\nStep 13: Generating human-readable report...")
+print("\nStep 14: Generating human-readable report...")
 report_file = generate_markdown_report()
 
 print(
@@ -150,7 +167,7 @@ print(
     f"{report_file}"
 )    
 
-print("\nStep 14: Generating analytical charts...")
+print("\nStep 15: Generating analytical charts...")
 generate_charts()
 
 print("✓ Analytical charts generated successfully.")

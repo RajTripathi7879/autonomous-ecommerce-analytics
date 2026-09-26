@@ -13,6 +13,20 @@ def load_recommendations():
     with open(recommendations_file, "r", encoding="utf-8") as file:
         return json.load(file)
 
+def load_ai_recommendations():
+    project_root = Path(__file__).resolve().parent.parent
+    recommendations_file = (
+        project_root / "outputs" / "ai_recommendations.json"
+    )
+
+    if not recommendations_file.exists():
+        raise FileNotFoundError(
+            f"AI recommendations file not found: {recommendations_file}"
+        )
+
+    with open(recommendations_file, "r", encoding="utf-8") as file:
+        return json.load(file)
+
 def load_final_report():
     project_root = Path(__file__).resolve().parent.parent
     report_file = project_root / "outputs" / "final_report.json"
@@ -36,6 +50,7 @@ def generate_markdown_report():
 
     report = load_final_report()
     recommendation_data = load_recommendations()
+    ai_recommendation_data = load_ai_recommendations()
 
     lines = []
 
@@ -97,6 +112,30 @@ def generate_markdown_report():
         lines.append("")
         lines.append(
             f"**Evidence:** {recommendation['evidence']}"
+        )
+        lines.append("")
+    
+    lines.append("## AI-Refined Recommendations")
+    lines.append("")
+
+    for recommendation in ai_recommendation_data["recommendations"]:
+        lines.append(
+            f"### {recommendation['area']} "
+            f"({recommendation['priority']} Priority)"
+        )
+        lines.append("")
+        lines.append(
+            f"**Recommendation:** "
+            f"{recommendation['recommendation']}"
+        )
+        lines.append("")
+        lines.append(
+            f"**Reason:** {recommendation['reason']}"
+        )
+        lines.append("")
+        lines.append(
+            f"**Evidence Source:** "
+            f"`{recommendation['evidence_source']}`"
         )
         lines.append("")
 
