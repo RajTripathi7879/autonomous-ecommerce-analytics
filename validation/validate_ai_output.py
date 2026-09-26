@@ -13,6 +13,9 @@ def validate_ai_output():
     report_file = project_root / "outputs" / "final_report.json"
     metrics_file = project_root / "outputs" / "metrics.json"
     results_file = project_root / "outputs" / "analysis_results.json"
+    ai_recommendations_file = (
+        project_root / "outputs" / "ai_recommendations.json"
+    )
 
     print("\n" + "=" * 60)
     print("AI OUTPUT VALIDATION")
@@ -30,9 +33,14 @@ def validate_ai_output():
         print("❌ Analysis results file not found.")
         return False
 
+    if not ai_recommendations_file.exists():
+        print("❌ AI recommendations file not found.")
+        return False
+
     report = load_json(report_file)
     metrics = load_json(metrics_file)
     analysis_results = load_json(results_file)
+    ai_recommendations = load_json(ai_recommendations_file)
 
     required_sections = [
         "executive_summary",
@@ -62,6 +70,98 @@ def validate_ai_output():
         return False
 
     print("✓ Report structure is valid")
+
+    if not isinstance(ai_recommendations, dict):
+        print("❌ AI recommendations must be an object.")
+        return False
+
+    if "recommendations" not in ai_recommendations:
+        print("❌ AI recommendations list is missing.")
+        return False
+
+    if not isinstance(ai_recommendations["recommendations"], list):
+        print("❌ AI recommendations must contain a list.")
+        return False
+
+    if not ai_recommendations["recommendations"]:
+        print("❌ AI recommendations list is empty.")
+        return False
+
+    print("✓ AI recommendation structure is valid")
+
+    required_ai_fields = [
+        "area",
+        "priority",
+        "recommendation",
+        "reason",
+        "evidence_source"
+    ]
+
+    valid_evidence_sources = set(
+        analysis_results["results"].keys()
+    )
+
+    evidence_source_aliases = {
+        "loss-making product analysis": "loss_making_products",
+        "loss-making products": "loss_making_products",
+        "discount profitability": "discount_profit_analysis",
+        "discount profitability analysis": "discount_profit_analysis",
+        "regional profit margin": "profit_margin_by_region",
+        "regional profit margin analysis": "profit_margin_by_region",
+        "regional profitability": "profit_margin_by_region",
+        "yearly sales/profit analysis": "sales_profit_by_year",
+        "yearly sales and profit analysis": "sales_profit_by_year",
+        "sales and profit analysis": "sales_profit_by_year",
+        "sales trend": "sales_profit_by_year",
+        "profit trend": "sales_profit_by_year",
+        "sales and profit trend": "sales_profit_by_year"
+    }
+
+    for index, recommendation in enumerate(
+        ai_recommendations["recommendations"],
+        start=1
+    ):
+        if not isinstance(recommendation, dict):
+            print(
+                f"❌ AI recommendation {index} must be an object."
+            )
+            return False
+
+        missing_fields = [
+            field
+            for field in required_ai_fields
+            if field not in recommendation
+        ]
+
+        if missing_fields:
+            print(
+                f"❌ AI recommendation {index} is missing: "
+                f"{missing_fields}"
+            )
+            return False
+
+        evidence_source = recommendation["evidence_source"]
+
+        if not isinstance(evidence_source, str):
+            print(
+                f"❌ AI recommendation {index} evidence_source "
+                f"must be a string."
+            )
+            return False
+
+        normalized_source = evidence_source.strip().lower()
+
+        if normalized_source not in valid_evidence_sources:
+            if normalized_source not in evidence_source_aliases:
+                print(
+                    f"❌ AI recommendation {index} uses invalid "
+                    f"evidence source: {evidence_source}"
+                )
+                return False
+
+    print(
+        "✓ All AI recommendations contain valid fields and evidence"
+    )
 
     source_metrics = metrics["overall_business_performance"]
     report_metrics = report["source_metrics"]
