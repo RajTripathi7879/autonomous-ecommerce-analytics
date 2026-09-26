@@ -1,37 +1,86 @@
 import sqlite3
+import json
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "superstore.db"
-SQL_PATH = BASE_DIR.parent / "sql" / "01_business_analysis.sql"
 
-conn = sqlite3.connect(DB_PATH)
+def run_analysis():
+    # Project directories
+    base_dir = Path(__file__).resolve().parent
+    project_root = base_dir.parent
 
-with open(SQL_PATH, "r", encoding="utf-8") as file:
-    sql_script = file.read()
+    db_path = base_dir / "superstore.db"
+    sql_path = project_root / "sql" / "01_business_analysis.sql"
+    output_dir = project_root / "outputs"
+    output_file = output_dir / "business_analysis.json"
 
-# Remove SQL comment lines
-sql_script = "\n".join(
-    line for line in sql_script.splitlines()
-    if not line.strip().startswith("--")
-)
+    # Create outputs directory if it doesn't exist
+    output_dir.mkdir(exist_ok=True)
 
-queries = [
-    query.strip()
-    for query in sql_script.split(";")
-    if query.strip()
-]
+    # Connect to database
+    conn = sqlite3.connect(db_path)
 
-for i, query in enumerate(queries, start=1):
-    print(f"\n{'=' * 60}")
-    print(f"QUERY {i}")
-    print("=" * 60)
+    # Read SQL analysis file
+    with open(sql_path, "r", encoding="utf-8") as file:
+        sql_script = file.read()
 
-    rows = conn.execute(query).fetchall()
+    # Remove SQL comment lines
+    sql_script = "\n".join(
+        line for line in sql_script.splitlines()
+        if not line.strip().startswith("--")
+    )
 
-    for row in rows:
-        print(row)
+    # Split SQL script into individual queries
+    queries = [
+        query.strip()
+        for query in sql_script.split(";")
+        if query.strip()
+    ]
 
-conn.close()
+    all_results = []
 
-print("\nAnalysis completed successfully.")
+    # Execute each query
+    for i, query in enumerate(queries, start=1):
+
+        print(f"\n{'=' * 60}")
+        print(f"QUERY {i}")
+        print("=" * 60)
+
+        cursor = conn.execute(query)
+        rows = cursor.fetchall()
+
+        # Get column names
+        columns = [
+            description[0]
+            for description in cursor.description
+        ]
+
+        # Print results
+        for row in rows:
+            print(row)
+
+        # Store structured results
+        query_result = {
+            "query_number": i,
+            "columns": columns,
+            "rows": [list(row) for row in rows]
+        }
+
+        all_results.append(query_result)
+
+    conn.close()
+
+    # Save all results as JSON
+    with open(output_file, "w", encoding="utf-8") as file:
+        json.dump(
+            all_results,
+            file,
+            indent=4,
+            default=str
+        )
+
+    print("\nAnalysis completed successfully.")
+    print(f"Results saved to: {output_file}")
+
+
+if __name__ == "__main__":
+    run_analysis()
